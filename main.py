@@ -3,15 +3,20 @@ import requests
 from bs4 import BeautifulSoup as BS
 import json
 import os
+from datetime import datetime, timezone
 
 menu_url = 'https://www.tacobell.com'
 menu_json_name = './menu.json'
 
 menu_table = {}
 
+def time() -> int:
+    return int(datetime.now(timezone.utc).timestamp())
+
 def download_menu_and_save():
     global menu_table, menu_json_name
     menu_table = {}
+    menu_table['food'] = {}
     agent = {"User-Agent":'Mozilla/5.0 (Gecko on Windows)'}
     page = requests.get(menu_url + '/food', headers=agent)
 
@@ -22,7 +27,7 @@ def download_menu_and_save():
         category_name = category.text
         url = category.find('a')['href']
 
-        menu_table[category_name] = []
+        menu_table['food'][category_name] = []
 
         category_url = menu_url + url
         
@@ -54,7 +59,10 @@ def download_menu_and_save():
             food_item['price'] = price
             food_item['cals'] = cals
 
-            menu_table[category_name].append(food_item)
+            menu_table['food'][category_name].append(food_item)
+
+    menu_table['version'] = 1
+    menu_table['time'] = time()
 
     f = open(menu_json_name, 'w')
     json.dump(menu_table, f)
@@ -63,6 +71,9 @@ def download_menu_and_save():
     return menu_table
 
 def load_menu_json():
+    if not os.path.exists(menu_json_name):
+        return None
+
     f = open(menu_json_name, 'r')
     data = json.load(f)
     f.close()
@@ -72,19 +83,28 @@ def load_menu_json():
 if __name__ == "__main__":
     menu_table = None
 
-    if not os.path.exists(menu_json_name):
+    menu_table = load_menu_json()
+
+    then = 0
+    try:
+        then = menu_table['time']
+    except Exception as e:
+        pass
+    
+    now = time() - then
+
+    if menu_table is None or now > 259200:
         print("Downloading Taco Bell menu...")
         menu_table = download_menu_and_save()
     else:
         print("Using cached Taco Bell menu from disk...")
-        menu_table = load_menu_json()
 
     if menu_table is None:
         print("Failed to load menu data somewhere, sorry")
         exit()
 
-    for category in menu_table.keys():
-        sorted_items = sorted(menu_table[category], key=lambda x:x['cals'] / (x['price'] if x['price'] != 0 else 1))
+    for category in menu_table['food'].keys():
+        sorted_items = sorted(menu_table['food'][category], key=lambda x:x['cals'] / (x['price'] if x['price'] != 0 else 1))
 
         print(category)
         for food in sorted_items:

@@ -43,7 +43,8 @@ Run the script
 
 - [ ]  More sorting options and nutritional info
 - [ ]  Command line options
-- [ ]  Expire the cached menu after a fixed period of time
+- [x]  Expire the cached menu after a fixed period of time
+  - Menu now expires after 3 days
 - [ ]  Color coding might be cool
 - [ ]  Properly tabulate the list
 - [ ]  Generate a recommended purchase list by priority
